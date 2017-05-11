@@ -1,0 +1,215 @@
+<html>
+  <head>
+    <title>Drop the image to localhost</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="clipboard.min.js"></script>
+    <script type="text/javascript">
+      //Basic config
+      var Unit=300*1024;//Biggest bytes to post every time
+      var Timeout=100;  //Time between each request
+      var ImagePath="Images" //Path to save the Image
+      var PHPName="SaveImage.php";//The php to proceed
+      var Callbackfunction=SetClipboard;//The function handle the response
+      var TipID="Help";//The id of <p> to show information
+      var PathID="Result";
+      var CopyButton="Copy";
+      var ResultDiv="ResultDiv";
+      var FileNameMode="Folder";// "Folder" or "Prefix"
+
+      //Temp Variables
+      var Interval=null;
+      var Start=null;
+      var End=null;
+      var Blob1=null;
+      var Data=null;
+      var Callback=null;
+      var File1=null;
+
+      function Handler()
+      {
+        var Form=document.forms.namedItem("Form1");
+        File1=Form["Image"].files[0]
+        if(File1)
+        {
+          var Path=null;
+          if (FileNameMode=="Folder") {
+            Path=Form["Prefix"]["value"]?ImagePath+"/"+Form["Prefix"]["value"]:ImagePath+"/"+Form["Prefix"]["placeholder"];
+          }
+          else {
+            Path=ImagePath;
+          }
+          SendBigFile("Image",File1,PHPName,Path);
+        }
+        else
+        {
+          alert("Please choose a file");
+        }
+      }
+
+      function SendXXt(Data,ScriptName,Callback)
+      {
+        var Xmlhttp=new XMLHttpRequest();
+        Xmlhttp.onreadystatechange=function()
+        {
+          if (this.readyState==4 && this.status==200)
+          {
+            //alert("Suc");
+            //alert(this.responseText);
+            var Percent=End/File1.size>1?100:(End/File1.size*100).toFixed(0);
+            SetPara(TipID,"Uploading: "+Percent+"%");
+            if(Callback)Callback(this.responseText);
+          }
+          else if(this.readyState==4)
+          {
+              alert("Upload failed!");
+          }
+        }
+        Xmlhttp.open("POST",ScriptName,true);
+        Xmlhttp.send(Data);
+      }
+
+      function SendBigFile(Key,File1,ScriptName,Path)
+      {
+        Start=0;
+        End=Unit;
+        var FileName=null;
+        if (FileNameMode=="Folder") {
+          FileName=(new Date()).valueOf()+"."+File1.name.split(".").pop();
+        }
+        else {
+          var Form=document.forms.namedItem("Form1");
+          var FilePrefix=Form["Prefix"]["value"]?Form["Prefix"]["value"]:Form["Prefix"]["placeholder"];
+          FileName=FilePrefix+"_"+(new Date()).valueOf()+"."+File1.name.split(".").pop();
+        }
+        Interval=setInterval(function(){SendPiece(Key,File1,ScriptName,Path,FileName);},Timeout);
+
+      }
+
+      function SendPiece(Key,File1,ScriptName,Path,FileName)
+      {
+        if(Start<File1.size)
+        {
+          //alert("Times: "+Start/Unit);
+          Blob1=File1.slice(Start,End);
+          Data=new FormData();
+          Data.append(Key,Blob1);
+          Data.append("Path",Path);
+          Data.append("FileName",FileName);
+          if(End>File1.size)Callback=Callbackfunction;
+          else Callback=null;
+          SendXXt(Data,ScriptName,Callback);
+          Start+=Unit;
+          End+=Unit;
+        }
+        else
+        {
+          clearInterval(Interval);
+        }
+      }
+
+      function SetClipboard(String1)
+      {
+        //document.getElementById(CopyButton).style.display="block";
+        //document.getElementById(PathID).style.display="block";
+        document.getElementById(ResultDiv).style.display="block";
+        SetPara(TipID,"Upload completed! The path is copied to clipboard.")
+        var Result=null;
+        //Result="![]("+String1+")";
+        Result="<div style=\"text-align:center\"><img src=\""+window.location.href+String1+"\"></div>"
+        SetInput(PathID,Result);
+        ChooseText(PathID);
+        //alert(String1);
+      }
+
+      function SetPara(id,Content)
+      {
+        document.getElementById(id).innerHTML=Content;
+      }
+
+      function SetInput(id,Content)
+      {
+        document.getElementById(id).value=Content;
+      }
+
+      function ChooseText(id)
+      {
+        var PathPara=document.getElementById(id);
+        var PathLength=PathPara.value.length;
+        if(PathPara.createTextRange){//IE浏览器
+          var Range1 = PathPara.createTextRange();
+          Range1.moveStart("character", 0);
+          Range1.moveEnd("character",PathLength);
+          Range1.select();
+        }else{//非IE浏览器
+          PathPara.focus();
+          PathPara.setSelectionRange(0,PathLength);
+        }
+      }
+    </script>
+  </head>
+  <body id="Body" ondrop="Drop(event)" ondragover="AllowDrop(event)" ondragend="Dragend(event)"style="text-align:center;margin:auto;width:800px">
+    <h2 style="margin-top:60px">Local Image Hosting</h2>
+    <form name="Form1" method="POST" enctype="multipart/form-data" style="width:600px;margin: auto;margin-top:20px;border:1px solid black;border-radius:8px;padding-top:48px;height:180px;">
+      <div name="PrefixDiv">
+        <div style="text-align:right;padding-right:20px;width:140px;float:left;font-size:large;margin-top:2px;">
+          <label style="">Prefix</label>
+        </div>
+        <div style="text-align:left;width:400px;float:left;padding-bottom:8px">
+          <input type="text" name="Prefix" placeholder="Default" style="height:30;width:360px;font-size:medium;padding-left:4px;">
+          <p style="margin:0;font-size:medium;">You can use the file name if you like.</p>
+        </div>
+      </div>
+      <div style="text-align:right;padding-right:20px;width:140px;float:left;font-size:large;margin-top:2px;">
+        <label>File</label>
+      </div>
+      <div style="text-align:left;width:400px;float:left;padding-bottom:8px">
+        <input type="file" name="Image" style="font-size:medium;margin-top:4px;">
+        <p style="margin:0;font-size:medium;">Or just drop the file into the page.</p>
+      </div>
+      <div style="text-align:right;padding-right:20px;width:140px;float:left;font-size:large;margin-top:2px;">
+        Status
+      </div>
+      <div style="text-align:left;width:400px;float:left;padding-bottom:20px;margin-top:6px;">
+        <p id="Help" style="margin:0;">Ready for help.</p>
+      </div>
+    </form>
+    <button onclick="Handler()" style="Width:140px;height:36px;font-size:medium;margin-top:20px;border-radius:8px;background-color:white;">Upload</button>
+    <div id="ResultDiv" style="display:none;width:600px;margin: auto;margin-top:20px;border:1px solid black;border-radius:8px;padding-top:48px;height:80px;">
+      <input id="Result" style="height:30;width:360px;font-size:medium;padding-left:4px;">
+      <button id="Copy" data-clipboard-target="#Result" style="Width:80px;height:36px;font-size:medium;border-radius:8px;background-color:white;">Copy</button>
+      <script type="text/javascript">
+        new Clipboard(document.getElementById(CopyButton));
+      </script>
+    </div>
+
+    <script type="text/javascript">
+      function AllowDrop(Ev)
+      {
+        Ev.preventDefault();
+      }
+
+      function Drop(Ev)
+      {
+        Ev.preventDefault();
+        var Form=document.forms.namedItem("Form1");
+        File1=Ev.dataTransfer.files[0]//getData("File");
+        var Path=null;
+        if (FileNameMode=="Folder") {
+          Path=Form["Prefix"]["value"]?ImagePath+"/"+Form["Prefix"]["value"]:ImagePath+"/"+Form["Prefix"]["placeholder"];
+        }
+        else {
+          Path="Defalut";
+        }
+        SendBigFile("Image",File1,PHPName,Path);
+      }
+
+      function Dragend(Ev)
+      {
+        //alert("haha");
+        Ev.preventDefault();
+      }
+
+      new Clipboard(document.getElementById(CopyButton));
+    </script>
+  </body>
+</html>
