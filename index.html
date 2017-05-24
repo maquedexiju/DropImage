@@ -115,7 +115,7 @@
         SetPara(TipID,"Upload completed! The path is copied to clipboard.")
         var Result=null;
         //Result="![]("+String1+")";
-        Result="<div style=\"text-align:center\"><img src=\""+window.location.href+String1+"\"></div>"
+        Result="<div style=\"text-align:center;margin:0 auto\"><img width=\"400px\" src=\""+window.location.href+String1+"\"></div>"
         SetInput(PathID,Result);
         ChooseText(PathID);
         //alert(String1);
@@ -177,9 +177,6 @@
     <div id="ResultDiv" style="display:none;width:600px;margin: auto;margin-top:20px;border:1px solid black;border-radius:8px;padding-top:48px;height:80px;">
       <input id="Result" style="height:30;width:360px;font-size:medium;padding-left:4px;">
       <button id="Copy" data-clipboard-target="#Result" style="Width:80px;height:36px;font-size:medium;border-radius:8px;background-color:white;">Copy</button>
-      <script type="text/javascript">
-        new Clipboard(document.getElementById(CopyButton));
-      </script>
     </div>
 
     <script type="text/javascript">
